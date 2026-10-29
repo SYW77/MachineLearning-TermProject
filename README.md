@@ -32,7 +32,7 @@ model.fit(recipes_df, train_df)        # train_df 컬럼: user_id, recipe_id, ra
 model.recommend(user_id, k=10) -> list # 추천 recipe_id 리스트 (점수 높은 순)
 ```
 
-## 콘텐츠 기반 필터링 (손연우)
+## 콘텐츠 기반 필터링
 실행:
 ```
 python run_content_based.py
