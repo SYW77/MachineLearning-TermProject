@@ -1,0 +1,10 @@
+# 데이터: 용량이 커서(약 640MB) 올리지 않는다. README를 보고 각자 Kaggle에서 받는다.
+data/
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
+
+# 개인용 Claude 설정 파일
+CLAUDE.md
+.claude/
