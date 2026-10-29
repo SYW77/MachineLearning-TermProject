@@ -35,7 +35,10 @@ def parse_list_column(value):
 
     값이 비어 있거나(NaN) 형식이 깨진 행은 빈 리스트로 처리한다.
     이렇게 하면 레시피 한 개 때문에 전체 실행이 멈추지 않는다.
+    이미 리스트로 파싱된 값은 그대로 돌려준다. 튜닝 때 파싱을 한 번만 하기 위해서다.
     """
+    if isinstance(value, list):     # 이미 파싱됨
+        return value
     if not isinstance(value, str):  # NaN(float) 등 문자열이 아닌 값
         return []
     try:
