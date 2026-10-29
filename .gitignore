@@ -8,3 +8,6 @@ __pycache__/
 # 개인용 Claude 설정 파일
 CLAUDE.md
 .claude/
+
+# 제안서 pdf
+Team6_Proposal.pdf
