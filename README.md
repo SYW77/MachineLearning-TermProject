@@ -16,12 +16,18 @@ Food.com 레시피·평점 데이터로 개인 맞춤형 레시피 추천 시스
 ```
 data/                    # 데이터 (Git 제외)
 src/
+  preprocess.py          # 전처리, 사용자별 시간순 train/valid/test 분할, 검증(validate_splits), load_splits
   recipe_parsing.py      # 재료·태그 문자열 파싱, TF-IDF 입력 텍스트 생성
   content_based.py       # ContentBasedRecommender
   temp_eval.py           # 임시 분할·Hit@K (공통 분할·평가 코드가 나오기 전까지 사용)
+run_preprocess.py        # 전처리·분할 실행 + 자동 검증 → data/processed/
+run_eda.py               # EDA 그래프 생성 → eda/
 run_content_based.py     # 콘텐츠 기반 추천기 실행 (임시 분할로 동작 확인)
 tune_content_based.py    # 콘텐츠 기반 튜닝 실험 (입력 필드, min_df, max_features)
+tests/                   # pytest 테스트 (분할·검증 함수)
+eda/                     # EDA 그래프, 최소 평점 수 기준별 요약표
 results/                 # 실행 결과, plot
+requirements.txt         # 필요한 라이브러리
 Team6_Proposal.pdf       # 제안서
 ```
 
@@ -177,3 +183,7 @@ python tune_content_based.py
 - SciPy 문서, `scipy.sparse`: https://docs.scipy.org/doc/scipy/reference/sparse.html
 - Python 문서, `ast.literal_eval`: https://docs.python.org/3/library/ast.html#ast.literal_eval
 - Y. Koren, R. Bell, C. Volinsky, "Matrix Factorization Techniques for Recommender Systems," IEEE Computer, 2009
+- pandas 문서, `GroupBy.cumcount`: https://pandas.pydata.org/docs/reference/api/pandas.core.groupby.GroupBy.cumcount.html
+- pandas 문서, `GroupBy.transform`: https://pandas.pydata.org/docs/reference/api/pandas.core.groupby.DataFrameGroupBy.transform.html
+- pandas 문서, `DataFrame.sort_values`: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.sort_values.html
+- pandas 문서, `DataFrame.to_csv`: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html
