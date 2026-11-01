@@ -11,3 +11,6 @@ CLAUDE.md
 
 # 제안서 pdf
 Team6_Proposal.pdf
+
+# pytest 캐시
+.pytest_cache/
