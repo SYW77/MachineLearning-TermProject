@@ -14,3 +14,9 @@ Team6_Proposal.pdf
 
 # pytest 캐시
 .pytest_cache/
+
+# 가상환경
+.venv/
+
+# macOS
+.DS_Store
