@@ -1,0 +1,43 @@
+TF-IDF 행렬: 231,637 레시피 × 44,077 단어
+
+[user 184083] 좋아한 레시피 (일부):
+   - three onion soup
+   - brie bread
+   - white bean soup
+   - artichoke bruschetta
+   - barbecue rub
+  추천 Top-5:
+   - julie s alabama white sauce
+   - corn pone pie
+   - spicy honey orange chicken
+   - honey bbq dipping sauce  kfc copycat
+   - barbecue rub for beer can chicken
+  실제 test 레시피: the world s best bread machine pizza dough recipe
+
+[user 101823] 좋아한 레시피 (일부):
+   - six can chicken tortilla soup
+   - anniversary chicken
+   - green beans with cherry tomatoes
+   - simmered round steak
+   - blender peach butter
+  추천 Top-5:
+   - saucy mexican eggs
+   - cucumber salad marinade
+   - monster sandwich
+   - scrambled egg muffins
+   - baked tomato
+  실제 test 레시피: pizza dough for thin crust pizza
+
+[user 362656] 좋아한 레시피 (일부):
+   - jalapeno red bean bbq burgers
+   - thai zucchini
+   - asian style savory baked tofu
+   - grilled mahi mahi
+   - creamy chickpea and tahini casserole
+  추천 Top-5:
+   - baked jerk tofu
+   - tofu   green onion stir fry
+   - easy night before french toast raphael
+   - jumbo shrimp with asparagus
+   - yummy tofu manicotti
+  실제 test 레시피: homemade seitan barbecue  bbq  ribs   vegan

@@ -1,7 +1,7 @@
 """
 tune_content_based.py  (담당: Member C, 3주차 튜닝 실험)
 
-콘텐츠 기반 추천기의 설정을 바꿔 가며 검증(valid) 데이터에서 Hit@K를 비교한다.
+콘텐츠 기반 추천기의 설정을 바꿔 가며 공통 분할의 valid에서 Precision@K·Recall@K를 비교한다.
 
 실험 (기본 설정: 재료+태그, min_df=2, max_features=None)
     한 번에 하나만 바꾸고 나머지는 기본값으로 둔다.
@@ -11,10 +11,11 @@ tune_content_based.py  (담당: Member C, 3주차 튜닝 실험)
 
 왜 valid로 튜닝하는가?
     test로 설정을 고르면 test 점수가 실제보다 좋게 나온다. test가 사실상 학습에 쓰인 셈이기 때문이다.
-    그래서 사용자별 '끝에서 두 번째' 평점(valid)으로 설정을 고른다.
-    test(마지막 평점)는 run_content_based.py에서 마지막 확인에만 쓴다.
+    그래서 valid로 설정을 고르고, test는 run_evaluate.py --split test로 마지막에 한 번만 본다.
 
-!! 임시 분할 기준이다. A의 공통 분할이 나오면 그 valid로 다시 돌린다. !!
+데이터와 지표
+    - 분할: preprocess.load_splits (공통 분할. 먼저 python run_preprocess.py 실행)
+    - 지표: evaluate.evaluate_topk (공통 평가 코드). valid는 사용자당 1개라서 Recall@K = Hit@K 이다.
 
 실행: python tune_content_based.py
 결과: results/content_based_tuning.csv, results/content_based_tuning.png
@@ -32,13 +33,16 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 from content_based import ContentBasedRecommender  # noqa: E402
+from evaluate import PopularityBaseline, evaluate_topk  # noqa: E402
+from preprocess import load_splits  # noqa: E402
 from recipe_parsing import prepare_recipes  # noqa: E402
-from temp_eval import temp_split, sample_eval_users, hit_at_k, popular_hit_at_k  # noqa: E402
 
-DATA_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data"
+DATA_DIR = ROOT / "data"
 RESULT_DIR = ROOT / "results"
-N_EVAL_USERS = 2000
-KS = [10, 50]
+# 평가 사용자 수. 처음 임시 실험(2,000명)은 설정 간 hit 차이가 몇 명뿐이라 우연과 구별하기 어려웠다.
+# 그래서 10,000명으로 늘렸다. 전체(약 3만 3천 명)는 설정 9개를 돌리는 데 2시간 가까이 걸린다.
+N_EVAL_USERS = 10000
+KS = (10, 50)
 
 DEFAULT = {"fields": ("ingredients", "tags"), "min_df": 2, "max_features": None}
 FIELD_LABELS = {
@@ -54,15 +58,22 @@ EXPERIMENTS = [
 ]
 
 
+def evaluate(model, valid):
+    """공통 평가 코드로 valid를 평가하고 {"recall@10": ..., "precision@10": ..., ...}를 돌려준다."""
+    # 모델이 달라도 seed가 같으면 같은 사용자들이 뽑힌다(evaluate_topk 설명 참고). 그래서 설정끼리 공정하게 비교된다.
+    res = evaluate_topk(model, valid, ks=KS, max_users=N_EVAL_USERS).set_index("k")
+    out = {"n_users": int(res["n_users"].iloc[0])}
+    for k in KS:
+        out[f"recall@{k}"] = res.loc[k, "recall"]
+        out[f"precision@{k}"] = res.loc[k, "precision"]
+    return out
+
+
 def main():
     t0 = time.time()
+    train, valid, _ = load_splits(DATA_DIR / "processed")  # test는 여기서 쓰지 않는다
     recipes = pd.read_csv(DATA_DIR / "RAW_recipes.csv")
-    inter = pd.read_csv(DATA_DIR / "RAW_interactions.csv", usecols=["user_id", "recipe_id", "date", "rating"])
-    inter = inter[inter["rating"] > 0]  # rating 0 = 리뷰만 남긴 경우 → 제거
-
-    train, valid, _ = temp_split(inter)  # test는 여기서 쓰지 않는다
-    eval_rows = sample_eval_users(valid, N_EVAL_USERS)
-    print(f"[임시 분할] train {len(train):,} / valid {len(valid):,}, 평가 사용자 {len(eval_rows):,}명")
+    print(f"[공통 분할] train {len(train):,} / valid {len(valid):,}")
 
     # 재료·태그 파싱(ast.literal_eval)은 23만 행이라 수십 초 걸린다. 실험마다 반복하지 않도록 한 번만 한다.
     # 파싱된 리스트가 들어가면 fit 안의 parse_list_column은 그대로 통과시킨다.
@@ -76,39 +87,36 @@ def main():
             key = tuple(config.items())
             if key not in done:
                 model = ContentBasedRecommender(**config).fit(recipes, train)
-                hits = hit_at_k(model, eval_rows, KS)
-                done[key] = (hits, model.X.shape[1])
-                print(f"  {config}  단어 {model.X.shape[1]:,}개  "
-                      + "  ".join(f"Hit@{k}={h:.4f}" for k, h in hits.items())
-                      + f"  ({time.time() - t0:.0f}s)")
-            hits, vocab = done[key]
+                done[key] = {"vocab_size": model.X.shape[1], **evaluate(model, valid)}
+                r = done[key]
+                print(f"  {config}  단어 {r['vocab_size']:,}개  "
+                      + "  ".join(f"Recall@{k}={r[f'recall@{k}']:.4f}" for k in KS)
+                      + f"  ({time.time() - t0:.0f}s)", flush=True)
             label = FIELD_LABELS[value] if param == "fields" else str(value)
-            rows.append({"experiment": exp_name, "value": label, "vocab_size": vocab,
-                         **{f"hit@{k}": h for k, h in hits.items()}})
+            rows.append({"experiment": exp_name, "value": label, **done[key]})
 
-    # 비교 기준: 같은 사용자들에게 인기순으로 추천한 결과 (모델 설정과 무관하므로 한 번만 계산)
-    pop = popular_hit_at_k(model, eval_rows, KS)
-    rows.append({"experiment": "Popularity", "value": "-", "vocab_size": 0,
-                 **{f"hit@{k}": h for k, h in pop.items()}})
+    # 비교 기준: 공통 평가 코드의 인기순 기준선 (같은 사용자들)
+    pop = evaluate(PopularityBaseline().fit(None, train), valid)
+    rows.append({"experiment": "Popularity", "value": "-", "vocab_size": 0, **pop})
 
     res = pd.DataFrame(rows)
     RESULT_DIR.mkdir(exist_ok=True)
     res.to_csv(RESULT_DIR / "content_based_tuning.csv", index=False)
-    print("\n" + res.round(4).to_string(index=False))
+    print("\n" + res.round(5).to_string(index=False))
 
-    # ---- plot: 실험별 Hit@10 막대 그래프, 인기순은 점선으로 표시 ----
+    # ---- plot: 실험별 Recall@10 막대 그래프, 인기순은 점선으로 표시 ----
     fig, axes = plt.subplots(1, len(EXPERIMENTS), figsize=(13, 4), sharey=True)
     for ax, (exp_name, _, _) in zip(axes, EXPERIMENTS):
         sub = res[res["experiment"] == exp_name]
-        bars = ax.bar(sub["value"], sub["hit@10"], color="#5b8c5a")
+        bars = ax.bar(sub["value"], sub["recall@10"], color="#5b8c5a")
         ax.bar_label(bars, fmt="%.4f", fontsize=8)  # 막대 위에 값 표시
-        ax.axhline(pop[10], color="#e05a3a", linestyle="--", label="Popularity")
+        ax.axhline(pop["recall@10"], color="#e05a3a", linestyle="--", label="Popularity")
         ax.set_title(exp_name)
         ax.tick_params(axis="x", rotation=15)
         ax.grid(axis="y", alpha=0.3)
-    axes[0].set_ylabel("Hit@10 on validation")
+    axes[0].set_ylabel("Recall@10 on validation")
     axes[0].legend()
-    fig.suptitle(f"Content-based tuning (temporary split, {len(eval_rows):,} users)")
+    fig.suptitle(f"Content-based tuning (shared split, valid, {pop['n_users']:,} users)")
     fig.tight_layout()
     fig.savefig(RESULT_DIR / "content_based_tuning.png", dpi=150)
     print(f"\n완료 ({time.time() - t0:.0f}s). 결과: {RESULT_DIR}")

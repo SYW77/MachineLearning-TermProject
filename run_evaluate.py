@@ -28,7 +28,7 @@ from evaluate import (  # noqa: E402
 KS = (5, 10, 20, 50)
 
 # 콘텐츠 기반 설정. run_content_based.py / tune_content_based.py에서 고른 값과 맞춘다.
-FIELDS = ("ingredients", "tags")
+FIELDS = ("ingredients", "tags", "description")
 MIN_DF = 2
 MAX_FEATURES = None
 
