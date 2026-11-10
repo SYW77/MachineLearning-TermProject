@@ -1,4 +1,4 @@
-"""SGD와 L2 정규화를 사용하는 편향 항 없는 행렬 분해 추천기."""
+"""평점 평균 보정을 적용한 SGD + L2 행렬 분해 추천기."""
 
 import numpy as np
 import pandas as pd
@@ -23,6 +23,7 @@ class MatrixFactorizationRecommender:
         self.user_to_row = {uid: row for row, uid in enumerate(user_ids)}
         self.recipe_to_row = {rid: row for row, rid in enumerate(recipe_ids)}
         self.global_mean = float(ratings.mean())
+        ratings = ratings - self.global_mean
         self.rated_ids = train.groupby("user_id")["recipe_id"].apply(set).to_dict()
         self.popular_ids = train["recipe_id"].value_counts().index.tolist()
 
@@ -46,7 +47,7 @@ class MatrixFactorizationRecommender:
         i = self.recipe_to_row.get(recipe_id)
         if u is None or i is None:
             return self.global_mean
-        return float(self.user_factors[u].dot(self.item_factors[i]))
+        return float(self.global_mean + self.user_factors[u].dot(self.item_factors[i]))
 
     def recommend(self, user_id, k=10):
         u = self.user_to_row.get(user_id)
