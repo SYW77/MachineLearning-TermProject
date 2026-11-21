@@ -35,7 +35,7 @@ MAX_FEATURES = None
 def main():
     train, valid, test = load_splits(DATA_DIR / "processed")
     recipes = pd.read_csv(DATA_DIR / "RAW_recipes.csv")
-    names = recipes.set_index("id")["name"]
+    names = recipes.set_index("id")["name"]  # recipe_id로 이름 찾기용
 
     # 최종 평가(run_evaluate.py --split test)와 같이 train+valid로 학습한다.
     model = ContentBasedRecommender(fields=FIELDS, min_df=MIN_DF, max_features=MAX_FEATURES)
@@ -43,7 +43,7 @@ def main():
 
     # 좋아한 레시피가 5개 이상인 test 사용자 중 무작위로 몇 명을 고른다. 너무 적으면 취향이 잘 안 보인다.
     candidates = [u for u in test["user_id"] if len(model.liked_rows.get(u, [])) >= 5]
-    users = pd.Series(candidates).sample(N_EXAMPLES, random_state=SEED)
+    users = pd.Series(candidates).sample(N_EXAMPLES, random_state=SEED)  # random_state를 고정해서 매번 같은 사용자
     test_item = test.set_index("user_id")["recipe_id"]
 
     lines = [f"TF-IDF 행렬: {model.X.shape[0]:,} 레시피 × {model.X.shape[1]:,} 단어", ""]

@@ -64,7 +64,7 @@ class ContentBasedRecommender:
         recipes = prepare_recipes(recipes_df, self.fields).reset_index(drop=True)
         self.recipe_ids = recipes["id"].to_numpy()
         # recipe_id → 행렬의 행 번호. 평점 데이터는 recipe_id로, 행렬은 행 번호로 접근한다.
-        self.id_to_row = pd.Series(np.arange(len(recipes)), index=recipes["id"])
+        self.id_to_row = pd.Series(np.arange(len(recipes)), index=recipes["id"])  # recipe_id로 행 번호 찾기용
 
         # ---- 2. TF-IDF 행렬 만들기 -------------------------------------------
         # TF-IDF(t, d) = TF(t, d) × IDF(t)
@@ -162,5 +162,5 @@ class ContentBasedRecommender:
 
     def _popular(self, rated, k):
         """인기순 목록에서 이미 평가한 레시피를 빼고 앞에서 k개를 반환한다."""
-        mask = ~np.isin(self.popular_rows, rated)
+        mask = ~np.isin(self.popular_rows, rated)  # np.isin: rated에 있는 위치가 True
         return self.recipe_ids[self.popular_rows[mask][:k]].tolist()

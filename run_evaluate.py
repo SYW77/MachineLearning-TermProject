@@ -44,6 +44,8 @@ MODEL_FACTORIES = {
 
 
 def main():
+    # argparse: 명령행 옵션 처리(--split test 같은 것)
+    # choices: 허용 값, default: 기본값, type: 바꿀 자료형, nargs="+": 값 여러 개를 리스트로 받음
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", choices=["valid", "test"], default="valid")
     ap.add_argument("--users", type=int, default=2000, help="평가 사용자 수. 0이면 전부")
@@ -87,6 +89,7 @@ def main():
     stem = f"eval_{args.split}"
     if set(args.models) != set(MODEL_FACTORIES):
         stem += "_" + "+".join(args.models)
+    # 모델별 결과를 위아래로 붙이고 모델 이름을 컬럼으로 꺼냄
     combined = pd.concat(topk, names=["model", "row"]).reset_index(level="model")
     combined.to_csv(out / f"{stem}_topk.csv", index=False)
     n_users = int(next(iter(topk.values()))["n_users"].iloc[0])

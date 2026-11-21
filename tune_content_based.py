@@ -61,6 +61,7 @@ EXPERIMENTS = [
 def evaluate(model, valid):
     """공통 평가 코드로 valid를 평가하고 {"recall@10": ..., "precision@10": ..., ...}를 돌려준다."""
     # 모델이 달라도 seed가 같으면 같은 사용자들이 뽑힌다(evaluate_topk 설명 참고). 그래서 설정끼리 공정하게 비교된다.
+    # k를 인덱스로 바꿔서 res.loc[10, "recall"]처럼 찾음
     res = evaluate_topk(model, valid, ks=KS, max_users=N_EVAL_USERS).set_index("k")
     out = {"n_users": int(res["n_users"].iloc[0])}
     for k in KS:
@@ -83,8 +84,8 @@ def main():
     done = {}  # 같은 설정(기본값)을 여러 실험에서 다시 학습하지 않도록 결과를 저장해 둔다
     for exp_name, param, values in EXPERIMENTS:
         for value in values:
-            config = {**DEFAULT, param: value}
-            key = tuple(config.items())
+            config = {**DEFAULT, param: value}  # 기본 설정에서 파라미터 하나만 바꿈
+            key = tuple(config.items())  # dict는 키로 못 써서 튜플로 바꿈
             if key not in done:
                 model = ContentBasedRecommender(**config).fit(recipes, train)
                 done[key] = {"vocab_size": model.X.shape[1], **evaluate(model, valid)}
@@ -105,14 +106,14 @@ def main():
     print("\n" + res.round(5).to_string(index=False))
 
     # ---- plot: 실험별 Recall@10 막대 그래프, 인기순은 점선으로 표시 ----
-    fig, axes = plt.subplots(1, len(EXPERIMENTS), figsize=(13, 4), sharey=True)
+    fig, axes = plt.subplots(1, len(EXPERIMENTS), figsize=(13, 4), sharey=True)  # sharey=True: y축 범위를 같게
     for ax, (exp_name, _, _) in zip(axes, EXPERIMENTS):
         sub = res[res["experiment"] == exp_name]
         bars = ax.bar(sub["value"], sub["recall@10"], color="#5b8c5a")
         ax.bar_label(bars, fmt="%.4f", fontsize=8)  # 막대 위에 값 표시
-        ax.axhline(pop["recall@10"], color="#e05a3a", linestyle="--", label="Popularity")
+        ax.axhline(pop["recall@10"], color="#e05a3a", linestyle="--", label="Popularity")  # 인기순 기준선
         ax.set_title(exp_name)
-        ax.tick_params(axis="x", rotation=15)
+        ax.tick_params(axis="x", rotation=15)  # x축 글자 기울이기
         ax.grid(axis="y", alpha=0.3)
     axes[0].set_ylabel("Recall@10 on validation")
     axes[0].legend()

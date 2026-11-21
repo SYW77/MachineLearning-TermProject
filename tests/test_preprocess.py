@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-import pytest
+import pytest  # pytest.raises: with 안에서 그 예외가 나야 통과
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # src/ 폴더를 import 경로에 추가
 from preprocess import chronological_split, validate_splits  # noqa: E402

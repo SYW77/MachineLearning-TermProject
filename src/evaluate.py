@@ -12,7 +12,7 @@ import os
 
 import matplotlib
 
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # 창을 띄우지 않고 파일로만 저장
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -29,6 +29,7 @@ def rmse(y_true, y_pred):
 def evaluate_rmse(model, eval_df):
     """eval_df의 모든 (user, recipe) 평점을 model.predict로 예측해 RMSE를 계산한다.
     예측이 None/NaN인 행은 제외하고, 예측이 가능했던 비율(coverage)을 함께 돌려준다."""
+    # (p:=...): predict 결과를 p에 저장하면서 바로 None인지 확인(파이썬 3.8 이상)
     preds = np.array(
         [np.nan if (p := model.predict(u, i)) is None else p
          for u, i in zip(eval_df[USER], eval_df[ITEM])],
@@ -51,8 +52,9 @@ def evaluate_topk(model, eval_df, ks=(5, 10, 20, 50), rel_threshold=4.0,
     max_users:     모델이 느릴 때 평가 사용자를 무작위로 줄인다. 모델끼리 같은 seed를 쓰면 같은 사용자가 뽑힌다.
     """
     rel = eval_df if rel_threshold is None else eval_df[eval_df[RATING] >= rel_threshold]
-    liked = rel.groupby(USER)[ITEM].apply(set)
+    liked = rel.groupby(USER)[ITEM].apply(set)  # 사용자별 정답 레시피 set
     if max_users is not None and len(liked) > max_users:
+        # sample(n, random_state): n명 무작위 추출, seed가 같으면 모델끼리 같은 사용자로 비교됨
         liked = liked.sample(max_users, random_state=seed)
 
     ks = sorted(ks)
@@ -62,7 +64,7 @@ def evaluate_topk(model, eval_df, ks=(5, 10, 20, 50), rel_threshold=4.0,
     for user, relevant in liked.items():
         recs = list(model.recommend(user, k=max_k))
         for k in ks:
-            hits = len(set(recs[:k]) & relevant)
+            hits = len(set(recs[:k]) & relevant)  # 상위 k개 추천과 정답의 교집합 개수
             precision[k].append(hits / k)
             recall[k].append(hits / len(relevant))
 
@@ -81,6 +83,7 @@ class PopularityBaseline:
     평점 예측은 레시피 평균 평점, train에 없던 레시피는 전체 평균을 쓴다."""
 
     def fit(self, recipes_df, train_df):
+        # agg(["count", "mean"]): 레시피별 평점 수와 평균을 한 번에 계산
         g = train_df.groupby(ITEM)[RATING].agg(["count", "mean"])
         self.ranking = g.sort_values(["count", "mean"], ascending=False).index.to_numpy()
         self.item_mean = g["mean"].to_dict()
@@ -122,14 +125,14 @@ def plot_rmse(rmse_results, path="results/rmse_comparison.png"):
     """rmse_results: {모델이름: RMSE 값}. 막대 그래프."""
     fig, ax = plt.subplots(figsize=(5, 4))
     bars = ax.bar(list(rmse_results), list(rmse_results.values()))
-    ax.bar_label(bars, fmt="%.3f")
+    ax.bar_label(bars, fmt="%.3f")  # 막대 위에 값 표시
     ax.set_ylabel("RMSE (lower is better)")
     ax.set_title("RMSE comparison")
     _save(fig, path)
 
 
 def _save(fig, path):
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)  # exist_ok=True: 폴더가 이미 있어도 에러 안 남
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
@@ -151,10 +154,12 @@ class _RandomModel:
 def _demo():
     rng = np.random.default_rng(0)
     n_users, n_items = 400, 300
+    # zipf: 일부 레시피에 인기가 몰리도록 가짜 데이터를 만듦
     pop = rng.zipf(1.5, n_items).astype(float)
     pop /= pop.sum()
     rows = []
     for u in range(n_users):
+        # choice(n, size, replace=False, p): 확률 p로 중복 없이 뽑음
         for t, i in enumerate(rng.choice(n_items, size=25, replace=False, p=pop)):
             rows.append((u, i, t, int(np.clip(round(rng.normal(4.2, 1.0)), 1, 5))))
     df = pd.DataFrame(rows, columns=[USER, ITEM, "date", RATING])
